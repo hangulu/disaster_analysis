@@ -1,2 +1,7 @@
-# disaster_analysis
-Harvard STAT139 Fall 2018 Final Project: Unnatural Disasters: The Data Behind Man Made Climate Change.
+#### Unnatural Disasters: The Data Behind Anthropogenic Climate Change
+
+It is undeniable that the climate of the world is changing. [Multiple studies](https://www.ipcc.ch/site/assets/uploads/2018/02/AR5_SYR_FINAL_SPM.pdf) have pointed out that "warming of the climate system is unequivocal, and since the 1950s, many of the observed changes are unprecedented  over decades to millennia. The atmosphere and ocean have warmed, the amounts of snow and ice have diminished, and sea level has risen." This issue becomes controversial, and often politicized, when we examine the cause of these rapid and dangerous changes in our climate.
+
+Humans impact the Earth in a number of ways, some of which are deleterious. While human innovation has leaped forward since the industrial revolution, so have our reliance on fossil fuels for energy, greenhouse gas emissions, water pollution, and deforestation. All of these are intimately connected to the systems that control the planet, including climate, so it is logical for us to expect that human action is linked to climate change, and may even be the main cause of it.
+
+This analysis looks at the relationship between anthropogenic emissions (like CO2, methane, and other greenhouse gases), anthropogenic alterations to the landscape (like deforestation, and coral reef destruction), human energy usage trends (like fossil fuel reliance), and the rate and intensity of natural disasters. While other manifestations of climate change, like the disappearance of coastal lands and property, or the destruction of certain Arctic marine habitats, are important, we chose to focus on natural disasters because in our opinion, they most clearly present simultaneously the most dangerous, time-sensitive, and contemporaneously relevant aspects of this phenomenon.
