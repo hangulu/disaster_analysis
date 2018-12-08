@@ -1,0 +1,190 @@
+\documentclass[10pt,]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+    \setmainfont[]{Gotham}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\hypersetup{unicode=true,
+            pdftitle={Unnatural Disasters: The Data Behind Anthropogenic Climate Change},
+            pdfauthor={Hakeem Angulu and Louie Ayre},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+%%% Use protect on footnotes to avoid problems with footnotes in titles
+\let\rmarkdownfootnote\footnote%
+\def\footnote{\protect\rmarkdownfootnote}
+
+%%% Change title format to be more compact
+\usepackage{titling}
+
+% Create subtitle command for use in maketitle
+\newcommand{\subtitle}[1]{
+  \posttitle{
+    \begin{center}\large#1\end{center}
+    }
+}
+
+\setlength{\droptitle}{-2em}
+
+  \title{Unnatural Disasters: The Data Behind Anthropogenic Climate Change}
+    \pretitle{\vspace{\droptitle}\centering\huge}
+  \posttitle{\par}
+    \author{Hakeem Angulu and Louie Ayre}
+    \preauthor{\centering\large\emph}
+  \postauthor{\par}
+      \predate{\centering\large\emph}
+  \postdate{\par}
+    \date{12/8/2018}
+
+
+\begin{document}
+\maketitle
+
+\subsection{Abstract}\label{abstract}
+
+It is undeniable that the climate of the world is changing. Multiple
+studies\footnote{IPCC Fifth Assessment Report: Summary for Policymakers,
+  \url{https://www.ipcc.ch/site/assets/uploads/2018/02/AR5_SYR_FINAL_SPM.pdf}}
+have pointed out that ``warming of the climate system is unequivocal,
+and since the 1950s, many of theobserved changes are unprecedented over
+decades to millennia. The atmosphere and ocean have warmed, the amounts
+of snow and ice have diminished, and sea level has risen.'' This issue
+becomes controversial, and often politicized, when we examine the cause
+of these rapid and dangerous changes in our climate.
+
+Humans impact the Earth in a number of ways, some of which are
+deleterious. While human innovation has leaped forward since the
+industrial revolution, so have our reliance on fossil fuels for energy,
+greenhouse gas emissions, water pollution, and deforestation. All of
+these are intimately connected to the systems that control the planet,
+including climate, so it is logical for us to expect that human action
+is linked to climate change, and may even be the main cause of it.
+
+This analysis looks at the relationship between anthropogenic emissions
+(like CO\(_2\), methane, and other greenhouse gases), anthropogenic
+alterations to the landscape (like deforestation, and coral reef
+destruction), human energy usage trends (like fossil fuel reliance), and
+the rate and intensity of natural disasters. While other manifestations
+of climate change, like the disappearance of coastal lands and property,
+or the destruction of certain Arctic marine habitats, are important, we
+chose to focus on natural disasters because in our opinion, they most
+clearly present simultaneously the most dangerous, time-sensitive, and
+contemporaneously relevant aspects of this phenomenon.
+
+\subsection{Motivation}\label{motivation}
+
+Both team members are from areas of the world that are currently at high
+risk of damage due to increasingly frequent and powerful natural
+disasters. Hakeem Angulu is from Jamaica, an island lying in the path of
+many hurricanes that originate in the Atlantic (Sandy, Wilma, Gilbert,
+etc.), and sometimes in the Gulf Coast (Katrina, Ivan, Nate, etc.).
+Louie Ayre is from California, a state wracked by increasingly intense
+forest fires (with 3 major blazes in November 2018 alone). For both,
+climate change is not only ``real'', but here right now, and affecting
+major aspects of their lives. Both understand that it is our duty, as
+humans, to attempt to mitigate the effects of this phenomenon, and that
+process starts with understanding and recognizing the phenomenon's
+origin. This analysis seeks to do that, and tie that conceptual
+understanding to concrete social and economic measures to further
+bolster their belief that swift action is necessary.
+
+\newpage
+
+\subsection{Hypothesis}\label{hypothesis}
+
+Our hypothesis is as follows:
+
+\textit{There is an association between anthropogenic emissions, landscape alterations, and resource usage trends and the rate and intensity of natural disasters}
+
+Each of the elements of the above hypothesis is well proxied by
+predictor and response variables of interest:
+
+\underline{Predictors:}
+
+\begin{itemize}
+  \item Anthropogenic emissions:
+  \begin{itemize}
+    \item CO$_2$ atmospheric levels
+    \item Methane atmospheric levels
+  \end{itemize}
+  \item Anthropogenic landscape alterations:
+  \begin{itemize}
+    \item Deforestation levels
+    \item Coral reef destruction levels
+  \end{itemize}
+  \item Human resource usage trends:
+  \begin{itemize}
+    \item Deforestation levels
+    \item Coral reef destruction levels
+  \end{itemize}
+\end{itemize}
+
+\underline{Response:}
+
+\begin{itemize}
+  \item The rate and intensity of natural disasters:
+  \begin{itemize}
+    \item The number of hurricanes making landfall in the United States per year
+    \item The average wind speed of a hurricane making landfall in the United States
+    \item The amount of land affected by fires in California per year
+    \item The numbers of people displaced, injured, and killed due to natural disasters
+    \item The amount of flooding in the United States per year
+    \item The amount of money spent on repairing post-natural disaster property damage
+  \end{itemize}
+\end{itemize}
+
+With these variables, we also built a predictivee model to predict
+damage induced by natural diasters, a model we hope is useful for
+understanding, concretizing, and contextualizing the problem at hand.
+
+
+\end{document}
