@@ -1,4 +1,4 @@
-#### Unnatural Disasters: The Data Behind Anthropogenic Climate Change
+## Unnatural Disasters: The Data Behind Anthropogenic Climate Change
 
 It is undeniable that the climate of the world is changing. [Multiple studies](https://www.ipcc.ch/site/assets/uploads/2018/02/AR5_SYR_FINAL_SPM.pdf) have pointed out that "warming of the climate system is unequivocal, and since the 1950s, many of the observed changes are unprecedented  over decades to millennia. The atmosphere and ocean have warmed, the amounts of snow and ice have diminished, and sea level has risen." This issue becomes controversial, and often politicized, when we examine the cause of these rapid and dangerous changes in our climate.
 
