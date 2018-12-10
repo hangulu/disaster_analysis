@@ -45,7 +45,6 @@ Each of the elements of the above hypothesis is well proxied by predictor and re
   \item Anthropogenic emissions:
   \begin{itemize}
     \item CO$_2$ atmospheric levels
-    \item Methane atmospheric levels
   \end{itemize}
   \item Anthropogenic landscape alterations:
   \begin{itemize}
@@ -54,8 +53,11 @@ Each of the elements of the above hypothesis is well proxied by predictor and re
   \end{itemize}
   \item Human resource usage trends:
   \begin{itemize}
-    \item Deforestation levels
-    \item Coral reef destruction levels
+    \item Fossil fuel usage
+  \end{itemize}
+  \item Other:
+  \begin{itemize}
+    \item Temperature
   \end{itemize}
 \end{itemize}
 
@@ -73,16 +75,25 @@ Each of the elements of the above hypothesis is well proxied by predictor and re
   \end{itemize}
 \end{itemize}
 
-With these variables, we also built a predictivee model to predict damage induced by natural diasters, a model we hope is useful for understanding, concretizing, and contextualizing the problem at hand.
+With these variables, we also built a predictive model to predict damage induced by natural diasters, a model we hope is useful for understanding, concretizing, and contextualizing the problem at hand.
 
 ## Data
 
 The data were collected from a multitude of sources, listed below:
 
 \begin{itemize}
-  \item National Centers for Environmental Information: National Oceanic and Atmospheric Administration's Storm Events Database\footnote{NOAA, https://www.ncdc.noaa.gov/stormevents/ftp.jsp}.
+  \item National Centers for Environmental Information: National Oceanic and Atmospheric Administration's Storm Events Database\footnote{NOAA, "National Oceanic and Atmospheric Administration's Storm Events Database" https://www.ncdc.noaa.gov/stormevents/ftp.jsp}.
   
   This database includes information about storms (heavy rain, heavy snowfall, hurricane (typhoon), tropical storm, etc.) in every state in the United States from 1950 to 2018. It includes direct and indirect fatalities, estimated property damage, and estimated crop damage for each storm.
+  \item US Energy Information Association: State Carbon Dioxide Emissions Data\footnote{EIA, "State Carbon Dioxide Emissions Data" https://www.eia.gov/environment/emissions/state/}.
+  
+  This database includes information about emissions, by state for every state from 1980 to 2018. It breaks data down by the emission type (from coal or from petroleum) and by the emitter (commerical or industrial).
+  \item CAL Fire: Incident Information Page\footnote{CAL Fire, "CAL FIRE Jurisdiction Fires, Acres, Dollar Damage, and Structures Destroyed." \newline http://cdfdata.fire.ca.gov/pub/cdf/images/incidentstatsevents\_270.pdf}.
+  
+  This database includes information about all fires in CAL Fire's jurisdiction in California from 1933 to 2016. CAL Fire is the California Department of Forestry and Fire Protection, and is the State of California's agency responsible for fire protection in State Responsibility Areas of California, totaling 31 million acres, as well as the administration of the state's private and public forests. Data include the dollar damage of fires, the amount of land burned in acres, and the number of fires per year.
+  \item US Energy Information Association: State Energy Data System (SEDS)\footnote{EIA, "State Energy Data System (SEDS): 1960-2016 (complete)" \newline https://www.eia.gov/state/seds/seds-data-complete.php?sid=US\#Consumption}
+  
+  This database includes information about every state's energy consumption and production from 1960 to 2016. The data are separated by energy source (i.e. nuclear, coal, biomass, etc.).
 \end{itemize}
 
 ## Methods
