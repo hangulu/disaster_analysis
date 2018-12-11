@@ -19,7 +19,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Abstract
 
-It is undeniable that the climate of the world is changing. Multiple studies^[IPCC Fifth Assessment Report: Summary for Policymakers, https://www.ipcc.ch/site/assets/uploads/2018/02/AR5_SYR_FINAL_SPM.pdf] have pointed out that "warming of the climate system is unequivocal, and since the 1950s, many of the observed changes are unprecedented  over decades to millennia. The atmosphere and ocean have warmed, the amounts of snow and ice have diminished, and sea level has risen." This issue becomes controversial, and often politicized, when we examine the cause of these rapid and dangerous changes in our climate.
+It is undeniable that the climate of the world is changing. Multiple studies^[IPCC Fifth Assessment Report: Summary for Policymakers, https://www.ipcc.ch/site/assets/uploads/2018/02/AR5_SYR_FINAL_SPM.pdf] have pointed out that "warming of the climate system is unequivocal, and since the 1950s, many of the observed changes are unprecedented over decades to millennia. The atmosphere and ocean have warmed, the amounts of snow and ice have diminished, and sea level has risen." This issue becomes controversial, and often politicized, when we examine the cause of these rapid and dangerous changes in our climate.
 
 Humans impact the Earth in a number of ways, some of which are deleterious. While human innovation has leaped forward since the industrial revolution, so have our reliance on fossil fuels for energy, greenhouse gas emissions, water pollution, and deforestation. All of these are intimately connected to the systems that control the planet, including climate, so it is logical for us to expect that human action is linked to climate change, and may even be the main cause of it.
 

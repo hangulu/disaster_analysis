@@ -1,0 +1,19 @@
+---
+title: 'Unnatural Disasters Data Cleaning'
+author: "Hakeem Angulu and Louie Ayre"
+date: "12/8/2018"
+output: 
+  pdf_document:
+    fig_height: 3.5
+    fig_width: 5
+    highlight: pygments
+    keep_tex: yes
+    latex_engine: xelatex
+fontsize: 10pt
+mainfont: Gotham
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
