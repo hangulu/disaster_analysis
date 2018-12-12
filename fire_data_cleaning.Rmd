@@ -1,51 +1,77 @@
 ---
-title: "data"
-author: "Louie"
-date: "12/11/2018"
-output: html_document
+title: 'Unnatural Disasters Data Cleaning: Fire Data'
+author: "Hakeem Angulu and Louie Ayre"
+date: "12/8/2018"
+output: 
+  pdf_document:
+    fig_height: 3.5
+    fig_width: 5
+    highlight: pygments
+    keep_tex: yes
+    latex_engine: xelatex
+fontsize: 10pt
+mainfont: Gotham
 ---
-### FIRE DATA CLEANING ###
+
+## Fire Data
 
 ```{r}
-setwd("/Users/louieayre/Documents/stat 139/project/")
+setwd("/Users/hakeemangulu/Code/disaster_analysis/data/fires/")
 
-# Load csvs for fires, coal emissions, and petroleum CO2 emissions
-fires <- read.csv("california_fires.csv")
-coal <- read.csv("coal_emissions.csv")
-jelly <- read.csv("petroleum_CO2_emissions.csv")
+# Load CSVs for fires, coal emissions, and petroleum CO2 emissions
+fires <- read.csv("/Users/hakeemangulu/Code/disaster_analysis/data/fires/california_fires.csv")
+coal <- read.csv("/Users/hakeemangulu/Code/disaster_analysis/data/emissions/coal_emissions.csv")
+jelly <- read.csv("/Users/hakeemangulu/Code/disaster_analysis/data/emissions/petroleum_CO2_emissions.csv")
+
 # Get fires from 1980 - 2016
 fire80 <- fires[48:84,]
+
 # Get Califonria coal emissions
 calcoal <- coal[coal$State == "California",2:38]
+
 # Get California petroleum emissions
 caljelly <- jelly[jelly$State == "California",2:38]
+
 # Load petrolium and coal emissions into fire80
 fire80$coal_emis <- t(calcoal)
 fire80$petr_emis <- t(caljelly)
 ```
 
 ```{r}
-# Load energy csv
-energy <- read.csv("energy_production.csv")
+# Load energy CSV
+energy <- read.csv("/Users/hakeemangulu/Code/disaster_analysis/data/energy_usage/energy_production.csv")
+
 # Get total energy production and renewable energy production
 calenergy <- t(energy[energy$StateCode == "CA" & (energy$MSN == "TEPRB" | energy$MSN == "REPRB"),24:60])
+
 # Load total energy production into fire80
 fire80$total_energy_prod <- calenergy[,2]
+
 # Load renewable energy production into fire80
 fire80$renew_energy_prod <- calenergy[,1]
+
 # Get non-renewable enrgy production
 fire80$nonrenew_energy_prod <- fire80$total_energy_prod - fire80$renew_energy_prod
+
 # Get wood energy production
 fire80$wood_energy_prod <- t(energy[energy$StateCode == "CA" & energy$MSN == "WDPRB" ,24:60])
 ```
 
 ```{r}
 # Load industrial emissions
-indu <- read.csv("industrial_CO2_emissions.csv")
+indu <- read.csv("/Users/hakeemangulu/Code/disaster_analysis/data/emissions/industrial_CO2_emissions.csv")
 fire80$indu_emis <- t(indu[indu$State == "California",2:38])
-# Load co2 concentration
-co2 <- read.csv("co2 concentration.csv")
+
+# Load CO2 concentration
+co2 <- read.csv("/Users/hakeemangulu/Code/disaster_analysis/data/emissions/co2_concentration.csv")
 fire80$co2_conc <- co2[,2]
+
+# Load methane concetration
+meth <- read.csv("/Users/hakeemangulu/Code/disaster_analysis/data/emissions/methane_concetration.csv")
+fire80$meth_conc <- meth[,2]
+
+# Output CSV
+write.csv(fire80, "/Users/hakeemangulu/Code/disaster_analysis/data/cleaned/fire_data.csv")
 ```
 
 
