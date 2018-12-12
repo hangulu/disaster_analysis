@@ -89,134 +89,25 @@
 \begin{document}
 \maketitle
 
-\subsection{Abstract}\label{abstract}
+\subsubsection{Regional Analysis}\label{regional-analysis}
 
-It is undeniable that the climate of the world is changing. Multiple
-studies\footnote{IPCC Fifth Assessment Report: Summary for Policymakers,
-  \url{https://www.ipcc.ch/site/assets/uploads/2018/02/AR5_SYR_FINAL_SPM.pdf}}
-have pointed out that ``warming of the climate system is unequivocal,
-and since the 1950s, many of the observed changes are unprecedented over
-decades to millennia. The atmosphere and ocean have warmed, the amounts
-of snow and ice have diminished, and sea level has risen.'' This issue
-becomes controversial, and often politicized, when we examine the cause
-of these rapid and dangerous changes in our climate.
-
-Humans impact the Earth in a number of ways, some of which are
-deleterious. While human innovation has leaped forward since the
-industrial revolution, so have our reliance on fossil fuels for energy,
-greenhouse gas emissions, water pollution, and deforestation. All of
-these are intimately connected to the systems that control the planet,
-including climate, so it is logical for us to expect that human action
-is linked to climate change, and may even be the main cause of it.
-
-This analysis looks at the relationship between anthropogenic emissions
-(like CO\(_2\), methane, and other greenhouse gases), anthropogenic
-alterations to the landscape (like deforestation, and coral reef
-destruction), human energy usage trends (like fossil fuel reliance), and
-the rate and intensity of natural disasters. While other manifestations
-of climate change, like the disappearance of coastal lands and property,
-or the destruction of certain Arctic marine habitats, are important, we
-chose to focus on natural disasters because in our opinion, they most
-clearly present simultaneously the most dangerous, time-sensitive, and
-contemporaneously relevant aspects of this phenomenon.
-
-\subsection{Motivation}\label{motivation}
-
-Both team members are from areas of the world that are currently at high
-risk of damage due to increasingly frequent and powerful natural
-disasters. Hakeem Angulu is from Jamaica, an island lying in the path of
-many hurricanes that originate in the Atlantic (Sandy, Wilma, Gilbert,
-etc.), and sometimes in the Gulf Coast (Katrina, Ivan, Nate, etc.).
-Louie Ayre is from California, a state wracked by increasingly intense
-forest fires (with 3 major blazes in November 2018 alone). For both,
-climate change is not only ``real'', but here right now, and affecting
-major aspects of their lives. Both understand that it is our duty, as
-humans, to attempt to mitigate the effects of this phenomenon, and that
-process starts with understanding and recognizing the phenomenon's
-origin. This analysis seeks to do that, and tie that conceptual
-understanding to concrete social and economic measures to further
-bolster their belief that swift action is necessary.
-
-\newpage
-
-\subsection{Hypothesis}\label{hypothesis}
-
-Our hypothesis is as follows:
-
-\textit{There is an association between anthropogenic emissions, landscape alterations, and resource usage trends and the rate and intensity of natural disasters}
-
-Each of the elements of the above hypothesis is well proxied by
-predictor and response variables of interest:
-
-\underline{Predictors:}
+The storm analysis is regional, based on the most prevalent storms in
+each of the following regions:
 
 \begin{itemize}
-  \item Anthropogenic emissions:
-  \begin{itemize}
-    \item CO$_2$ atmospheric levels
-  \end{itemize}
-  \item Anthropogenic landscape alterations:
-  \begin{itemize}
-    \item Deforestation levels
-    \item Coral reef destruction levels
-  \end{itemize}
-  \item Human resource usage trends:
-  \begin{itemize}
-    \item Fossil fuel usage
-  \end{itemize}
-  \item Other:
-  \begin{itemize}
-    \item Temperature
-  \end{itemize}
+  \item \textit{Northeast}: Connecticut, Maine, Massachussets, New Hampshire, Rhode Island, Vermont, New Jersey, New York, Pennsylvania, Delaware, Maryland, DC
+  
+  This region is primiarily affected by snowstorms, which include: avalanches, blizzards, hail, and more
+  \item \textit{California}
+  
+  This region is primarily affected by heatstorms, which include: wildfires, droughts, and more
+  \item \textit{South}: Florida, Georgia, North Carolina, South Carolina, Virginia, West Virginia, Alabama, Kentucky, Mississippi, Tennessee, Arkansas, Louisiana, Oklahoma, and Texas
+  
+  This region is primarily affected by rainstorms, which include flash floods, floods, heavy rain, hurricanes, and more
+  \item \textit{Midwest}: Illinois, Indiana, Iowa, Kansas, Michigan, Minnesota, Missouri, Nebraska, North Dakota, Ohio, South Dakota and Wisconsin
+  
+  This region is primarily affected by windstorms, which include tornadoes, high winds, and more
 \end{itemize}
-
-\underline{Response:}
-
-\begin{itemize}
-  \item The rate and intensity of natural disasters:
-  \begin{itemize}
-    \item The number of hurricanes making landfall in the United States per year
-    \item The average wind speed of a hurricane making landfall in the United States
-    \item The amount of land affected by fires in California per year
-    \item The numbers of people displaced, injured, and killed due to natural disasters
-    \item The amount of flooding in the United States per year
-    \item The amount of money spent on repairing post-natural disaster property damage
-  \end{itemize}
-\end{itemize}
-
-With these variables, we also built a predictive model to predict damage
-induced by natural diasters, a model we hope is useful for
-understanding, concretizing, and contextualizing the problem at hand.
-
-\subsection{Data}\label{data}
-
-The data were collected from a multitude of sources, listed below:
-
-\begin{itemize}
-  \item National Centers for Environmental Information: National Oceanic and Atmospheric Administration's Storm Events Database\footnote{NOAA, "National Oceanic and Atmospheric Administration's Storm Events Database" https://www.ncdc.noaa.gov/stormevents/ftp.jsp}.
-  
-  This database includes information about storms (heavy rain, heavy snowfall, hurricane (typhoon), tropical storm, etc.) in every state in the United States from 1950 to 2018. It includes direct and indirect fatalities, estimated property damage, and estimated crop damage for each storm.
-  \item US Energy Information Association: State Carbon Dioxide Emissions Data\footnote{EIA, "State Carbon Dioxide Emissions Data" https://www.eia.gov/environment/emissions/state/}.
-  
-  This database includes information about emissions, by state for every state from 1980 to 2018. It breaks data down by the emission type (from coal or from petroleum) and by the emitter (commerical or industrial).
-  \item CAL Fire: Incident Information Page\footnote{CAL Fire, "CAL FIRE Jurisdiction Fires, Acres, Dollar Damage, and Structures Destroyed." \newline http://cdfdata.fire.ca.gov/pub/cdf/images/incidentstatsevents\_270.pdf}.
-  
-  This database includes information about all fires in CAL Fire's jurisdiction in California from 1933 to 2016. CAL Fire is the California Department of Forestry and Fire Protection, and is the State of California's agency responsible for fire protection in State Responsibility Areas of California, totaling 31 million acres, as well as the administration of the state's private and public forests. Data include the dollar damage of fires, the amount of land burned in acres, and the number of fires per year.
-  \item US Energy Information Association: State Energy Data System (SEDS)\footnote{EIA, "State Energy Data System (SEDS): 1960-2016 (complete)" \newline https://www.eia.gov/state/seds/seds-data-complete.php?sid=US\#Consumption}
-  
-  This database includes information about every state's energy consumption and production from 1960 to 2016. The data are separated by energy source (i.e. nuclear, coal, biomass, etc.).
-\end{itemize}
-
-\subsection{Methods}\label{methods}
-
-\subsection{Assumptions}\label{assumptions}
-
-\subsection{Results}\label{results}
-
-\subsection{Challenges and
-Limitations}\label{challenges-and-limitations}
-
-\subsection{Discussion and Conclusion}\label{discussion-and-conclusion}
 
 
 \end{document}

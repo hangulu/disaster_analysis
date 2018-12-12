@@ -17,3 +17,20 @@ mainfont: Gotham
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+### Regional Analysis
+
+The storm analysis is regional, based on the most prevalent storms in each of the following regions:
+\begin{itemize}
+  \item \textit{Northeast}: Connecticut, Maine, Massachussets, New Hampshire, Rhode Island, Vermont, New Jersey, New York, Pennsylvania, Delaware, Maryland, DC
+  
+  This region is primiarily affected by snowstorms, which include: avalanches, blizzards, hail, and more
+  \item \textit{California}
+  
+  This region is primarily affected by heatstorms, which include: wildfires, droughts, and more
+  \item \textit{South}: Florida, Georgia, North Carolina, South Carolina, Virginia, West Virginia, Alabama, Kentucky, Mississippi, Tennessee, Arkansas, Louisiana, Oklahoma, and Texas
+  
+  This region is primarily affected by rainstorms, which include flash floods, floods, heavy rain, hurricanes, and more
+  \item \textit{Midwest}: Illinois, Indiana, Iowa, Kansas, Michigan, Minnesota, Missouri, Nebraska, North Dakota, Ohio, South Dakota and Wisconsin
+  
+  This region is primarily affected by windstorms, which include tornadoes, high winds, and more
+\end{itemize}
