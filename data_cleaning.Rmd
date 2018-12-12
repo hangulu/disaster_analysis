@@ -17,3 +17,111 @@ mainfont: Gotham
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r lib}
+# Load libraries
+library(dplyr)
+library(tidyverse)
+```
+
+
+## Storms Data
+
+```{r test.1}
+# Before 1955, the only storms are tornadoes
+storms2016 = full_clean("./data/storms/storms2016.csv")
+```
+
+```{r test.2}
+test = collapse_storms(storms2016)
+```
+
+
+```{r storms.1}
+clean_storm <- function(file_path) {
+  # Read in the data
+  data <- read.csv(file_path)
+  
+  # Add the indirect to the direct
+  data$INJURIES <- data$INJURIES_DIRECT + data$INJURIES_INDIRECT
+  data$DEATHS <- data$DEATHS_DIRECT + data$DEATHS_INDIRECT
+  
+  # Transform property damage to a number
+  data$DAMAGE_K <- as.numeric(sub("K", "e3", data$DAMAGE_PROPERTY, fixed = TRUE))
+  data$DAMAGE_M <- as.numeric(sub("M", "e6", data$DAMAGE_PROPERTY, fixed = TRUE))
+  
+  # Combine the millions and thousands of damage from above into one column
+  data$DAMAGE <- ifelse(is.na(data$DAMAGE_K), data$DAMAGE_M, data$DAMAGE_K)
+  
+  # NAs at this point are for missing data, assumed to be 0. Fix that
+  data$DAMAGE[is.na(data$DAMAGE)] <- 0
+  
+  # Only keep columns of interest
+  keep = c("YEAR", "STATE", "EVENT_TYPE", "INJURIES", "DEATHS", "DAMAGE")
+  data <- subset(data, select = keep)
+  
+  return(data)
+}
+```
+
+```{r storms.2}
+agg_storm <- function(df) {
+  # Use the dplyr package to group by state and event type, then fold the calculations to summarize
+  tidied <- df %>%
+  group_by(STATE, EVENT_TYPE, YEAR) %>%
+  summarise(injured = sum(INJURIES),
+            deaths = sum(DEATHS),
+            damage = sum(DAMAGE))
+  # Rename the columns
+  names(tidied) <- c("state", "storm_type", "year", "injured", "deaths", "property_damage")
+  return(tidied)
+}
+
+# A wrapper for the two functions
+full_clean <- function(file_path) {
+  return(agg_storm(clean_storm(file_path)))
+}
+```
+
+```{r storms.3}
+# Function to reduce the number of types of storms. The following are the reductions:
+# windstorm: Tornado, High Wind, Marine High Wind, Marine Strong Wind,
+#            Marine Thunderstorm Wind
+# snowstorm: Avalanche, Blizzard, Frost/Freeze, Hail, Heavy Snow, Ice Storm, 
+#            Lake-Effect Snow, Marine Hail, Sleet, Winter Weather, Winter Storm
+# rainstorm: Coastal Flood, Flash Flood, Flood, Heavy Rain, Hurricane (Typhoon), 
+#            Lakeshore Flood, Rip Current, Tsunami, Tropical Depression,
+#            Tropical Storm
+# heatstorm: Wildfire, Drought, Excessive Heat
+collapse_storms <- function(df) {
+  # Use the dplyr package to group by state, then reassign the event type
+  windstorm = c("Tornado", "High Wind", "Marine High Wind", "Marine Strong Wind", "Marine Thunderstorm Wind")
+  snowstorm = c("Avalanche", "Blizzard", "Frost/Freeze", "Hail", "Heavy Snow", "Ice Storm", "Lake-Effect Snow", "Marine Hail", "Sleet", "Winter Weather", "Winter Storm")
+  rainstorm = c("Coastal Flood", "Flash Flood", "Flood", "Heavy Rain", "Hurricane (Typhoon)", "Lakeshore Flood", "Rip Current", "Tsunami", "Tropical Depression", "Tropical Storm")
+  heatstorm = c("Wildfire", "Drought", "Excessive Heat")
+  df <- df %>% 
+    group_by(state) %>% 
+    mutate(storm_type = case_when(storm_type %in% windstorm ~ "windstorm", 
+                                  storm_type %in% snowstorm ~ "snowstorm",
+                                  storm_type %in% rainstorm ~ "rainstorm",
+                                  storm_type %in% heatstorm ~ "heatstorm"))
+  
+  # Remove the NAs (storms that had no meaningful/useful classfication)
+  df <- drop_na(df)
+  df$
+  
+  #sum_with_factors <- function(vec) {
+    #if (typeof(vec) == "integer") {
+     # return(sum(vec))
+    #} else if (typeof(vec) == "factor") {
+    #  return(vec[0])
+    #}
+  #}
+  
+  # Use the aggregate function to aggregate by state and storm_type
+  df <- aggregate(df, by=list(df$state, df$storm_type), FUN=sum)
+  return(df)
+}
+
+```
+
+
