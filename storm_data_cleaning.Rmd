@@ -1,5 +1,5 @@
 ---
-title: 'Unnatural Disasters Data Cleaning'
+title: 'Unnatural Disasters Data Cleaning: Storm Data'
 author: "Hakeem Angulu and Louie Ayre"
 date: "12/8/2018"
 output: 
@@ -26,12 +26,12 @@ library(tidyverse)
 
 ## Storms Data
 
-```{r test.1}
+```{r test.1 eval=F}
 # Before 1955, the only storms are tornadoes
 storms2016 = full_clean("./data/storms/storms2016.csv")
 ```
 
-```{r test.2}
+```{r test.2 eval=F}
 test = collapse_storms(storms2016)
 ```
 
@@ -75,11 +75,6 @@ agg_storm <- function(df) {
   names(tidied) <- c("state", "storm_type", "year", "injured", "deaths", "property_damage")
   return(tidied)
 }
-
-# A wrapper for the two functions
-full_clean <- function(file_path) {
-  return(agg_storm(clean_storm(file_path)))
-}
 ```
 
 ```{r storms.3}
@@ -107,21 +102,27 @@ collapse_storms <- function(df) {
   
   # Remove the NAs (storms that had no meaningful/useful classfication)
   df <- drop_na(df)
-  df$
-  
-  #sum_with_factors <- function(vec) {
-    #if (typeof(vec) == "integer") {
-     # return(sum(vec))
-    #} else if (typeof(vec) == "factor") {
-    #  return(vec[0])
-    #}
-  #}
-  
+
   # Use the aggregate function to aggregate by state and storm_type
-  df <- aggregate(df, by=list(df$state, df$storm_type), FUN=sum)
-  return(df)
+  agg <- aggregate(. ~ state + storm_type + year, df, sum)
+  
+  return(agg)
 }
 
+# A wrapper for the three functions
+full_clean <- function(file_path) {
+  return(collapse_storms(agg_storm(clean_storm(file_path))))
+}
+```
+
+```{r}
+# Store the data as one long CSV
+files <- list.files(path="/Users/hakeemangulu/Code/disaster_analysis/data/storms", full.names=TRUE, recursive=FALSE)
+full_set = full_clean("/Users/hakeemangulu/Code/disaster_analysis/data/storms/storms1955.csv")
+for(i in 1:length(files)){
+  full_set <- rbind(full_set, full_clean(files[i]))
+}
+write.csv(full_set, "/Users/hakeemangulu/Code/disaster_analysis/data/cleaned/storm_data.csv")
 ```
 
 
