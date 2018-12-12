@@ -1,0 +1,51 @@
+---
+title: "data"
+author: "Louie"
+date: "12/11/2018"
+output: html_document
+---
+### FIRE DATA CLEANING ###
+
+```{r}
+setwd("/Users/louieayre/Documents/stat 139/project/")
+
+# Load csvs for fires, coal emissions, and petroleum CO2 emissions
+fires <- read.csv("california_fires.csv")
+coal <- read.csv("coal_emissions.csv")
+jelly <- read.csv("petroleum_CO2_emissions.csv")
+# Get fires from 1980 - 2016
+fire80 <- fires[48:84,]
+# Get Califonria coal emissions
+calcoal <- coal[coal$State == "California",2:38]
+# Get California petroleum emissions
+caljelly <- jelly[jelly$State == "California",2:38]
+# Load petrolium and coal emissions into fire80
+fire80$coal_emis <- t(calcoal)
+fire80$petr_emis <- t(caljelly)
+```
+
+```{r}
+# Load energy csv
+energy <- read.csv("energy_production.csv")
+# Get total energy production and renewable energy production
+calenergy <- t(energy[energy$StateCode == "CA" & (energy$MSN == "TEPRB" | energy$MSN == "REPRB"),24:60])
+# Load total energy production into fire80
+fire80$total_energy_prod <- calenergy[,2]
+# Load renewable energy production into fire80
+fire80$renew_energy_prod <- calenergy[,1]
+# Get non-renewable enrgy production
+fire80$nonrenew_energy_prod <- fire80$total_energy_prod - fire80$renew_energy_prod
+# Get wood energy production
+fire80$wood_energy_prod <- t(energy[energy$StateCode == "CA" & energy$MSN == "WDPRB" ,24:60])
+```
+
+```{r}
+# Load industrial emissions
+indu <- read.csv("industrial_CO2_emissions.csv")
+fire80$indu_emis <- t(indu[indu$State == "California",2:38])
+# Load co2 concentration
+co2 <- read.csv("co2 concentration.csv")
+fire80$co2_conc <- co2[,2]
+```
+
+
