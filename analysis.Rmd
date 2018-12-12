@@ -34,3 +34,38 @@ The storm analysis is regional, based on the most prevalent storms in each of th
   
   This region is primarily affected by windstorms, which include tornadoes, high winds, and more
 \end{itemize}
+
+```{r libs}
+library(quantmod)
+```
+
+
+```{r northeast}
+# Set the working directory
+setwd("/Users/hakeemangulu/Code/disaster_analysis/data/cleaned")
+
+# Read in the CSV
+northeast <- read.csv("northeast_storms.csv")
+
+# Adjust property damage numbers for inflation: https://stackoverflow.com/questions/12590180/inflation-adjusted-prices-package
+adj_inflation <- function(data){
+  getSymbols("CPIAUCSL", src='FRED')
+  avg.cpi <- apply.yearly(CPIAUCSL, mean)
+  cf <- avg.cpi/as.numeric(avg.cpi['2016']) # using 2018 as the base year
+  df <- as.data.frame(cf)
+  df$year <- 1947:2018
+  data <- merge(data, df, all=FALSE)
+  data$adj_damage <- data$damage / data$CPIAUCSL
+  data$X <- NULL
+  return(data)
+}
+
+northeast <- adj_inflation(northeast)
+
+```
+
+```{r}
+model_1 = lm(damage ~ coal_emis + petrol_emis + nonrenew_energy_prod + co2_conc, data = northeast)
+summary(model_1)
+```
+
