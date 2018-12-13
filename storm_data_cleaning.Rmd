@@ -220,6 +220,7 @@ df <- energy %>%
 
 # Remove the NAs (states that we are not analyzing)
 df <- subset(df, !is.na(df$region))
+
 df <- subset(df, df$MSN == "TEPRB" | df$MSN == "REPRB")
 df$Data_Status <- NULL
 df$StateCode <- NULL
@@ -236,14 +237,14 @@ tepr_agg$MSN <- NULL
 california_storms$total_energy_prod <- t(tepr_agg[tepr_agg$region == "california",38:58])
 california_storms$renew_energy_prod <- t(repr_agg[repr_agg$region == "california",38:58])
 
-northeast_storms$total_energy_prod <- t(tepr_agg[tepr_agg$region == "california",22:58])
-northeast_storms$renew_energy_prod <- t(repr_agg[repr_agg$region == "california",22:58])
+northeast_storms$total_energy_prod <- t(tepr_agg[tepr_agg$region == "northeast",22:58])
+northeast_storms$renew_energy_prod <- t(repr_agg[repr_agg$region == "northeast",22:58])
 
-midwest_storms$total_energy_prod <- t(tepr_agg[tepr_agg$region == "california",22:58])
-midwest_storms$renew_energy_prod <- t(repr_agg[repr_agg$region == "california",22:58])
+midwest_storms$total_energy_prod <- t(tepr_agg[tepr_agg$region == "midwest",22:58])
+midwest_storms$renew_energy_prod <- t(repr_agg[repr_agg$region == "midwest",22:58])
 
-south_storms$total_energy_prod <- t(tepr_agg[tepr_agg$region == "california",38:58])
-south_storms$renew_energy_prod <- t(repr_agg[repr_agg$region == "california",38:58])
+south_storms$total_energy_prod <- t(tepr_agg[tepr_agg$region == "south",38:58])
+south_storms$renew_energy_prod <- t(repr_agg[repr_agg$region == "south",38:58])
 
 # Get non-renewable enrgy production
 california_storms$nonrenew_energy_prod <- california_storms$total_energy_prod - california_storms$renew_energy_prod

@@ -1,5 +1,5 @@
 ---
-title: 'Unnatural Disasters: The Data Behind Anthropogenic Climate Change'
+title: 'Unnatural Disasters: The Data Behind Anthropogenic Climate Change, Analysis Document'
 author: "Hakeem Angulu and Louie Ayre"
 date: "12/8/2018"
 output: 
@@ -10,42 +10,30 @@ output:
     keep_tex: yes
     latex_engine: xelatex
 fontsize: 10pt
-mainfont: Gotham
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-### Regional Analysis
+## Analysis
 
-The storm analysis is regional, based on the most prevalent storms in each of the following regions:
-\begin{itemize}
-  \item \textit{Northeast}: Connecticut, Maine, Massachussets, New Hampshire, Rhode Island, Vermont, New Jersey, New York, Pennsylvania, Delaware, Maryland, DC
-  
-  This region is primiarily affected by snowstorms, which include: avalanches, blizzards, hail, and more
-  \item \textit{California}
-  
-  This region is primarily affected by heatstorms, which include: wildfires, droughts, and more
-  \item \textit{South}: Florida, Georgia, North Carolina, South Carolina, Virginia, West Virginia, Alabama, Kentucky, Mississippi, Tennessee, Arkansas, Louisiana, Oklahoma, and Texas
-  
-  This region is primarily affected by rainstorms, which include flash floods, floods, heavy rain, hurricanes, and more
-  \item \textit{Midwest}: Illinois, Indiana, Iowa, Kansas, Michigan, Minnesota, Missouri, Nebraska, North Dakota, Ohio, South Dakota and Wisconsin
-  
-  This region is primarily affected by windstorms, which include tornadoes, high winds, and more
-\end{itemize}
+The following document outlines the process from reading in the cleaned data to variable selection to model selection. It is meant to represent the bulk of the work after the data cleaning process.
 
-```{r libs}
-library(quantmod)
+```{r}
+# Set working directory
+setwd("/Users/louieayre/Documents/disaster_analysis/data")
+
+# Read in csv
+midw <- read.csv("midwest_storms.csv")
+north <- read.csv("northeast_storms.csv")
+south <- read.csv("south_storms.csv")
+cali <- read.csv("fire_data.csv")
 ```
 
-
-```{r northeast}
-# Set the working directory
-setwd("/Users/hakeemangulu/Code/disaster_analysis/data/cleaned")
-
-# Read in the CSV
-northeast <- read.csv("northeast_storms.csv")
+Adjust for inflation:
+```{r}
+library(quantmod)
 
 # Adjust property damage numbers for inflation: https://stackoverflow.com/questions/12590180/inflation-adjusted-prices-package
 adj_inflation <- function(data){
@@ -55,17 +43,1220 @@ adj_inflation <- function(data){
   df <- as.data.frame(cf)
   df$year <- 1947:2018
   data <- merge(data, df, all=FALSE)
-  data$adj_damage <- data$damage / data$CPIAUCSL
+  data$adj_damage <- data$damage / (10000000*data$CPIAUCSL)
   data$X <- NULL
   return(data)
 }
 
-northeast <- adj_inflation(northeast)
+# Fix column name and adjust all data sets
+colnames(cali)[4] = "damage"
+cali <- adj_inflation(cali)
+north <- adj_inflation(north)
+midw <- adj_inflation(midw)
+south <- adj_inflation(south)
+```
 
+### Fires in California
+
+### Acres Burned
+
+Adjust units and check symmetry of acres burned:
+```{r}
+# Acres -> thousands of acres
+cali$acres_burned_thou <- cali$acres_burned/1000
+# Plot histogram
+hist(cali$acres_burned_thou, main = "Annual Acres Burned", xlab = "Acres Burned in Thousands")
+```
+The data are right skewed; apply a log transformation:
+```{r}
+# Apply a log transformation
+cali$logged_acres_burned <- log(cali$acres_burned_thou)
+
+# Plot histogram of logged data
+hist(cali$logged_acres_burned, main = "Annual Acres Burned (Logged)", xlab = "Acres Burned in Thousands (Logged)")
+```
+The resulting histogram shows sufficiently symmetrical data. Scatterplot to check the predictors: 
+
+```{r}
+plot(cali$logged_acres_burned ~ cali$coal_emis, main = "Acres Burned vs Coal Emissions", ylab = "Acres (Logged Thousands)", xlab = "Coal Emissions (Million Tonnes of CO2)")
+plot(cali$logged_acres_burned ~ cali$petr_emis, main = "Acres Burned vs Petroleum Emissions", ylab = "Acres (Logged Thousands)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+plot(cali$logged_acres_burned ~ cali$indu_emis, main = "Acres Burned vs Industrial Emissions", ylab = "Acres (Logged Thousands)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+
+plot(cali$logged_acres_burned ~ cali$total_energy_prod, main = "Acres Burned vs Total Energy Produced", ylab = "Acres (Logged Thousands)", xlab = "Total Energy Produced (Billion Btu)")
+plot(cali$logged_acres_burned ~ cali$nonrenew_energy_prod, main = "Acres Burned vs Renewable Energy Produced", ylab = "Acres (Logged Thousands)", xlab = "Total Energy Produced (Billion Btu)")
+plot(cali$logged_acres_burned ~ cali$renew_energy_prod, main = "Acres Burned vs Nonrenewable Energy Produced", ylab = "Acres (Logged Thousands)", xlab = "Total Energy Produced (Billion Btu)")
+
+plot(cali$logged_acres_burned ~ cali$co2_conc, main = "Acres Burned vs Atmospheric CO2 Concentration", ylab = "Acres (Logged Thousands)", xlab = "Atmospheric CO2 Concentration (ppm)")
+plot(cali$logged_acres_burned ~ cali$meth_conc, main = "Acres Burned vs Atmospheric Methane Concentration", ylab = "Acres (Logged Thousands)", xlab = "Atmospheric Methane Concentration (ppb)")
+```
+Industrial emissions might benefit from a transformation. Climb the ladder:
+```{r}
+# plot the histogram
+hist(cali$indu_emis)
+# transform; plot histogram and scatterplot
+par(mfrow = c(1,2))
+hist(cali$indu_emis^2)
+plot(cali$logged_acres_burned ~ I(cali$indu_emis^2))
+# transform; plot histogram and scatterplot
+hist(cali$indu_emis^3)
+plot(cali$logged_acres_burned ~ I(cali$indu_emis^3))
+# transform; plot histogram and scatterplot
+hist(cali$indu_emis^4)
+plot(cali$logged_acres_burned ~ I(cali$indu_emis^4))
+# Store transformed predictor
+cali$indu4 <- (cali$indu_emis)^4
+```
+Raising to the fourth power looks sufficient. Model each predictor individually and interpret results:
+
+```{r}
+acali1 <- lm(logged_acres_burned~coal_emis, data = cali)
+summary(acali1)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged acres burned and coal emissions.
+
+```{r}
+acali2 <- lm(logged_acres_burned~petr_emis, data = cali)
+summary(acali2)
+plot(acali2, which = 1:2)
+```
+Petrolem emissions is a significant predictor at the 0.05 level, suggesting a positive association with logged acres burned. The residuals are approximately normally distributed with equal variance.
+
+```{r}
+acali3 <- lm(logged_acres_burned~indu4, data = cali)
+summary(acali3)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged acres burned and transformed industrial emissions.
+
+```{r}
+acali4 <- lm(logged_acres_burned~total_energy_prod, data = cali)
+summary(acali4)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged acres burned and total energy produced.
+
+```{r}
+acali5 <- lm(logged_acres_burned~renew_energy_prod, data = cali)
+summary(acali5)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged acres burned and total energy produced.
+
+```{r}
+acali6 <- lm(logged_acres_burned~nonrenew_energy_prod, data = cali)
+summary(acali6)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged acres burned and total energy produced.
+
+```{r}
+acali7 <- lm(logged_acres_burned ~ co2_conc, data = cali)
+summary(acali7)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged acres burned and total energy produced.
+
+```{r}
+acali8 <- lm(logged_acres_burned ~ meth_conc, data = cali)
+summary(acali8)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged acres burned and total energy produced.
+
+Multiple Regression on all predictors:
+```{r}
+acali9 <- lm(logged_acres_burned~ petr_emis + indu4 + co2_conc + meth_conc- petr_emis:indu4 - co2_conc:meth_conc, data = cali)
+summary(acali9)
 ```
 
 ```{r}
-model_1 = lm(damage ~ coal_emis + petrol_emis + nonrenew_energy_prod + co2_conc, data = northeast)
-summary(model_1)
+step(acali9, direction = "both")
+```
+```{r}
+AIC(acali2)
+AIC(acali9)
+summary(acali2)$adj.r.squared
+summary(acali9)$adj.r.squared
+```
+acali8 has the lower AIC, but acali9 has the higher adjusted r squared.
+
+### Number of Fires
+
+Check symmetry of number of fires:
+```{r}
+# Plot histogram
+hist(cali$fires, main = "Histogram of Annual Number of Fires", xlab = "Number of Fires")
+```
+This is an akwad distribution and there is no obviouos appropriate transformation. There is a slight right skew, so we will try rooting the data:
+
+```{r}
+par(mfrow = c(1,2))
+hist(cali$fires, main = "Annual Number of Fires", xlab = "Number of Fires")
+hist(cali$fires^0.25, main = "Annual # Fires (4th Rooted)", xlab = "Number of Fires (4th Rooted)")
+```
+Taking the fourth root produces more nicely distributed data. Scatterplot to check the predictors: 
+
+```{r}
+# Store transformed number of fires
+cali$firesqr <- (cali$fires)^0.25
+plot(cali$firesqr ~ cali$coal_emis, main = "Number of Fires vs Coal Emissions", ylab = "Number of Fires (0.25)", xlab = "Coal Emissions (Million Tonnes of CO2)")
+plot(cali$firesqr ~ cali$petr_emis, main = "Number of Fires vs Petroleum Emissions", ylab = "Number of Fires (0.25)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+plot(cali$firesqr ~ cali$indu_emis, main = "Number of Fires vs Industrial Emissions", ylab = "Number of Fires (0.25)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+
+plot(cali$firesqr ~ cali$total_energy_prod, main = "Number of Fires vs Total Energy Produced", ylab = "Number of Fires (0.25)", xlab = "Total Energy Produced (Billion Btu)")
+plot(cali$firesqr ~ cali$nonrenew_energy_prod, main = "Number of Fires vs Renewable Energy Produced", ylab = "Number of Fires (0.25)", xlab = "Total Energy Produced (Billion Btu)")
+plot(cali$firesqr ~ cali$renew_energy_prod, main = "Number of Fires vs Nonrenewable Energy Produced", ylab = "Number of Fires (0.25)", xlab = "Total Energy Produced (Billion Btu)")
+
+plot(cali$firesqr ~ cali$co2_conc, main = "Number of Fires vs Atmospheric CO2 Concentration", ylab = "Number of Fires (0.25)", xlab = "Atmospheric CO2 Concentration (ppm)")
+plot(cali$firesqr ~ cali$meth_conc, main = "Number of Fires vs Atmospheric Methane Concentration", ylab = "Number of Fires (0.25)", xlab = "Atmospheric Methane Concentration (ppb)")
+```
+There are no clear transformations. Model each predictor individually and interpret results:
+
+```{r}
+fcali1 <- lm(firesqr~coal_emis, data = cali)
+summary(fcali1)
+plot(fcali1, which = 1:2)
+```
+Coal emissions is significant predictor at the 0.05 level, suggesting a positive association with fourth rooted fires. The residuals are approximately normally distrubted, but we should keep note that the variance of the residuals appears to drop off.
+
+```{r}
+fcali2 <- lm(firesqr~petr_emis, data = cali)
+summary(fcali2)
+```
+No significant result implies that we cannot reject the null that there is no linear association between fourth rooted number of fires and industrial emissions.
+
+```{r}
+fcali3 <- lm(firesqr~indu_emis, data = cali)
+summary(fcali3)
+```
+No significant result implies that we cannot reject the null that there is no linear association between fourth rooted number of fires and transformed industrial emissions.
+
+```{r}
+fcali4 <- lm(firesqr~total_energy_prod, data = cali)
+summary(fcali4)
+plot(fcali4, which = c(1,2))
+```
+Total energy produced is significant predictor at the 0.05 level, suggesting a positive association with fourth rooted fires. The residuals, however, seem concentrated and there is a high outlier. We should also keep note that the variance of the residuals appears to spike in the center.
+
+```{r}
+fcali5 <- lm(firesqr~renew_energy_prod, data = cali)
+summary(fcali5)
+plot(fcali5, which = 1:2)
+```
+Total energy produced is significant predictor at the 0.05 level, suggesting a positive association with fourth rooted fires. The residuals seem approximately normally distribute, with slightly light tails. The variance of the residuals is approximately equal.
+
+```{r}
+fcali6 <- lm(firesqr~nonrenew_energy_prod, data = cali)
+summary(fcali6)
+plot(fcali6, which = 1:2)
+```
+Renewable energy produced is significant predictor at the 0.05 level, suggesting a positive association with fourth rooted fires. The residuals seem approximately normally distributed, with slightly light tails, but we should keep note that the variance of the residuals is spikes in the middle.
+
+```{r}
+fcali7 <- lm(firesqr ~ co2_conc, data = cali)
+summary(fcali7)
+plot(fcali7, which = c(1,2))
+```
+CO2 concentration is a significant predictor at the 0.05 level, suggesting a negative association with fourth rooted fires. The residuals seem approximately normally distributed, but we should also keep note that the variance of the residuals appears to spike in the center.
+
+```{r}
+fcali8 <- lm(firesqr ~ meth_conc, data = cali)
+summary(fcali8)
+plot(fcali8, which = c(1,2))
+```
+Methane concentration is a significant predictor at the 0.05 level, suggesting a negative association with fourth rooted fires. The residuals seem approximately normally distributed, but we should also keep note that the variance of the residuals appears to spike in the center.
+
+```{r}
+fcali9 <- lm(firesqr ~ coal_emis + nonrenew_energy_prod + co2_conc + meth_conc, data = cali)
+summary(fcali9)
+```
+```{r}
+step(fcali9, direction = "both")
+```
+
+```{r}
+fcali10 <- lm(firesqr ~ co2_conc + meth_conc, data = cali)
+summary(fcali10)
+```
+
+
+### Damage
+
+Check symmetry of damage:
+```{r}
+# Plot histogram
+par(mfrow=c(1,2))
+hist(cali$adj_damage, main = "Annual Damage", xlab = "Inflation Adjusted Damage in Millions")
+hist(cali$logged_damage, main = "Annual Damage (Logged)", xlab = "Inflation Adjust Damage in Millions (Logged)")
+```
+The data are right skewed; apply a log transformation:
+```{r}
+# Apply a log transformation
+cali$logged_damage <- log(cali$adj_damage)
+
+# Plot histogram of logged data
+hist(cali$logged_damage, main = "Histogram of Annual Damage (Logged)", xlab = "Logged Damage in Inflation Adjusted Millions of Dollars")
+```
+The resulting histogram is sufficient. Scatterplot to check the predictors: 
+
+```{r}
+plot(cali$logged_damage ~ cali$coal_emis, main = "Damage vs Coal Emissions", ylab = "Damage (Adj. Logged Millions)", xlab = "Coal Emissions (Million Tonnes of CO2)")
+plot(cali$logged_damage ~ cali$petr_emis, main = "Damage vs Petroleum Emissions", ylab = "Damage (Adj. Logged Millions)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+plot(cali$logged_damage ~ cali$indu_emis, main = "Damage vs Industrial Emissions", ylab = "Damage (Adj. Logged Millions)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+
+plot(cali$logged_damage ~ cali$total_energy_prod, main = "Damage vs Total Energy Produced", ylab = "Damage (Adj. Logged Millions)", xlab = "Total Energy Produced (Billion Btu)")
+plot(cali$logged_damage ~ cali$nonrenew_energy_prod, main = "Damage vs Renewable Energy Produced", ylab = "Damage (Adj. Logged Millions)", xlab = "Total Energy Produced (Billion Btu)")
+plot(cali$logged_damage ~ cali$renew_energy_prod, main = "Damage vs Nonrenewable Energy Produced", ylab = "Damage (Adj. Logged Millions)", xlab = "Total Energy Produced (Billion Btu)")
+
+plot(cali$logged_damage ~ cali$co2_conc, main = "Damage vs Atmospheric CO2 Concentration", ylab = "Damage (Adj. Logged Millions)", xlab = "Atmospheric CO2 Concentration (ppm)")
+plot(cali$logged_damage ~ cali$meth_conc, main = "Damage vs Atmospheric Methane Concentration", ylab = "Damage (Adj. Logged Millions)", xlab = "Atmospheric Methane Concentration (ppb)")
+```
+None of the scatterplots indicate that a transformation is neccessary.
+
+Model each predictor individually and interpret results:
+```{r}
+dcali1 <- lm(logged_damage~coal_emis, data = cali)
+summary(dcali1)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged damage and coal emissions.
+
+```{r}
+dcali2 <- lm(logged_damage~petr_emis, data = cali)
+summary(dcali2)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged damage and petrolem emissions. 
+
+```{r}
+dcali3 <- lm(logged_damage~indu_emis, data = cali)
+summary(dcali3)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged damage and industrial emissions.
+
+```{r}
+dcali4 <- lm(logged_damage~total_energy_prod, data = cali)
+summary(dcali4)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged damage and total energy produced.
+
+```{r}
+dcali5 <- lm(logged_damage~renew_energy_prod, data = cali)
+summary(dcali5)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged damage and total energy produced.
+
+```{r}
+dcali6 <- lm(logged_damage~nonrenew_energy_prod, data = cali)
+summary(dcali6)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged damage and total energy produced.
+
+```{r}
+dcali7 <- lm(logged_damage ~ co2_conc, data = cali)
+summary(dcali7)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged acres burned and total energy produced.
+
+```{r}
+dcali8 <- lm(logged_damage ~ meth_conc, data = cali)
+summary(dcali8)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged acres burned and total energy produced.
+
+```{r}
+dcali9 <- lm(logged_damage ~  coal_emis + petr_emis + indu_emis + co2_conc + meth_conc, data = cali)
+summary(dcali9)
+```
+
+```{r}
+step(dcali9, direction = "both")
+```
+
+```{r}
+AIC(dcali2)
+AIC(dcali9)
+summary(dcali2)$adj.r.squared
+summary(dcali9)$adj.r.squared
+```
+
+### Windstorms in the Midwest
+
+### People Injured
+
+Check symmetry of people injured:
+```{r}
+# Plot histogram
+hist(midw$injured, main = "Histogram of Annual People Injured", xlab = "People Injured")
+```
+
+The data are right skewed; apply a log transformation:
+```{r}
+# Apply a log transformation
+midw$logged_injured <- log(midw$injured)
+
+# Plot histogram of logged data
+hist(midw$logged_injured, main = "Histogram of Annual People Injured (Logged)", xlab = "Logged People Injured")
+```
+
+The resulting histogram shows sufficiently symmetrical data. Scatterplot to check the predictors: 
+
+```{r}
+plot(midw$logged_injured ~ midw$coal_emis, main = "People Injured vs Coal Emissions", ylab = "People Injured (Logged)", xlab = "Coal Emissions (Million Tonnes of CO2)")
+plot(midw$logged_injured ~ midw$petrol_emis, main = "People Injured vs Petroleum Emissions", ylab = "People Injured (Logged)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+plot(midw$logged_injured ~ midw$indu_emis, main = "People Injured vs Industrial Emissions", ylab = "People Injured (Logged)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+
+plot(midw$logged_injured ~ midw$total_energy_prod, main = "People Injured vs Total Energy Produced", ylab = "People Injured (Logged)", xlab = "Total Energy Produced (Billion Btu)")
+plot(midw$logged_injured ~ midw$nonrenew_energy_prod, main = "People Injured vs Renewable Energy Produced", ylab = "People Injured (Logged)", xlab = "Total Energy Produced (Billion Btu)")
+plot(midw$logged_injured ~ midw$renew_energy_prod, main = "People Injured vs Nonrenewable Energy Produced", ylab = "People Injured (Logged)", xlab = "Total Energy Produced (Billion Btu)")
+
+plot(midw$logged_injured ~ midw$co2_conc, main = "People Injured vs Atmospheric CO2 Concentration", ylab = "People Injured (Logged)", xlab = "Atmospheric CO2 Concentration (ppm)")
+plot(midw$logged_injured ~ midw$meth_conc, main = "People Injured vs Atmospheric Methane Concentration", ylab = "People Injured (Logged)", xlab = "Atmospheric Methane Concentration (ppb)")
+```
+The Energy measurements all appear to be right skewed, and thus could benefit from a transformation:
+```{r}
+plot(midw$logged_injured ~ log(midw$nonrenew_energy_prod))
+plot(midw$logged_injured ~ log(midw$renew_energy_prod))
+plot(midw$logged_injured ~ log(midw$total_energy_prod))
+```
+
+
+Take the log transformations, as they are slightly better. Model each predictor individually and interpret results:
+
+```{r}
+imidw1 <- lm(logged_injured~coal_emis, data = midw)
+summary(imidw1)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged people injured and coal emissions.
+
+```{r}
+imidw2 <- lm(logged_injured~petrol_emis, data = midw)
+summary(imidw2)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged people injured and petroleum emissions.
+
+```{r}
+imidw3 <- lm(logged_injured~indu_emis, data = midw)
+summary(imidw3)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged people injured and industrial emissions.
+
+```{r}
+imidw4 <- lm(logged_injured~I(log(total_energy_prod)), data = midw)
+summary(imidw4)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged people injured and total energy produced.
+
+```{r}
+imidw5 <- lm(logged_injured~I(log(renew_energy_prod)), data = midw)
+summary(imidw5)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged people injured and renewable energy produced.
+
+```{r}
+imidw6 <- lm(logged_injured~I(log(nonrenew_energy_prod)), data = midw)
+summary(imidw6)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged people injured and nonrenewable energy produced.
+
+```{r}
+imidw7 <- lm(logged_injured ~ co2_conc, data = midw)
+summary(imidw7)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged people injured and atmospheric CO2 concentrations.
+
+```{r}
+imidw8 <- lm(logged_injured ~ meth_conc, data = midw)
+summary(imidw8)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged people injured and atmospheric methane concentrations.
+
+```{r}
+imidw9 <- lm(logged_injured ~ coal_emis + indu_emis + I(log(nonrenew_energy_prod)), data = midw)
+summary(imidw9)
+```
+
+```{r}
+step(imidw9, direction = "both")
+```
+
+```{r}
+imidw10 <- lm(logged_injured ~ coal_emis + indu_emis, data = midw)
+summary(imidw10)
+AIC(imidw10)
+AIC(imidw9)
+summary(imidw9)$adj.r.squared
+```
+
+### People Killed
+
+Check symmetry of people killed:
+```{r}
+# Plot histogram
+hist(midw$deaths, main = "Histogram of Annual Deaths", xlab = "Deaths")
+```
+The data are right skewed; because there is a value of 0 apply a root transformation:
+```{r}
+# Apply a root transformation
+midw$deathsqr <- (midw$deaths)^0.25
+
+# Plot histogram of fourth rooted data
+hist(midw$deathsqr, main = "Histogram of Annual Deaths (^0.25)", xlab = "Deaths (^0.25)")
+```
+The resulting histogram shows sufficiently symmetrical data. Scatterplot to check the predictors: 
+
+```{r}
+plot(midw$deathsqr ~ midw$coal_emis, main = "People Killed vs Coal Emissions", ylab = "Deaths (^0.25)", xlab = "Coal Emissions (Million Tonnes of CO2)")
+plot(midw$deathsqr ~ midw$petrol_emis, main = "People Killed vs Petroleum Emissions", ylab = "Deaths (^0.25)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+plot(midw$deathsqr ~ midw$indu_emis, main = "People Killed vs Industrial Emissions", ylab = "Deaths (^0.25)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+
+plot(midw$deathsqr ~ midw$total_energy_prod, main = "People Killed vs Total Energy Produced", ylab = "Deaths (^0.25)", xlab = "Total Energy Produced (Billion Btu)")
+plot(midw$deathsqr ~ midw$nonrenew_energy_prod, main = "People Killed vs Renewable Energy Produced", ylab = "Deaths (^0.25)", xlab = "Total Energy Produced (Billion Btu)")
+plot(midw$deathsqr ~ midw$renew_energy_prod, main = "People Killed vs Nonrenewable Energy Produced", ylab = "Deaths (^0.25)", xlab = "Total Energy Produced (Billion Btu)")
+
+plot(midw$deathsqr ~ midw$co2_conc, main = "People Killed vs Atmospheric CO2 Concentration", ylab = "Deaths (^0.25)", xlab = "Atmospheric CO2 Concentration (ppm)")
+plot(midw$deathsqr ~ midw$meth_conc, main = "People Killed vs Atmospheric Methane Concentration", ylab = "Deaths (^0.25)", xlab = "Atmospheric Methane Concentration (ppb)")
+```
+There are no obvious transformations, althoguh we will keep note of the few outliers in the plot against industrial emissions. Model each predictor individually and interpret results:
+
+```{r}
+kmidw1 <- lm(deathsqr~coal_emis, data = midw)
+summary(kmidw1)
+```
+No significant result implies that we cannot reject the null that there is no linear association between fourth rooted people killed and coal emissions.
+
+```{r}
+kmidw2 <- lm(deathsqr~petrol_emis, data = midw)
+summary(kmidw2)
+```
+No significant result implies that we cannot reject the null that there is no linear association between fourth rooted people killed and petroleum emissions.
+
+```{r}
+kmidw3 <- lm(deathsqr~indu_emis, data = midw)
+summary(kmidw3)
+```
+No significant result implies that we cannot reject the null that there is no linear association between fourth rooted people killed and industrial emissions.
+
+```{r}
+kmidw4 <- lm(deathsqr~total_energy_prod, data = midw)
+summary(kmidw4)
+```
+No significant result implies that we cannot reject the null that there is no linear association between fourth rooted people killed and total energy produced.
+
+```{r}
+kmidw5 <- lm(deathsqr~renew_energy_prod, data = midw)
+summary(kmidw5)
+```
+No significant result implies that we cannot reject the null that there is no linear association between fourth rooted people killed and renewable energy produced.
+
+```{r}
+kmidw6 <- lm(deathsqr~nonrenew_energy_prod, data = midw)
+summary(kmidw6)
+```
+No significant result implies that we cannot reject the null that there is no linear association between fourth rooted people killed and nonrenewable energy produced.
+
+```{r}
+kmidw7 <- lm(deathsqr ~ co2_conc, data = midw)
+summary(kmidw7)
+```
+No significant result implies that we cannot reject the null that there is no linear association between fourth rooted people killed and atmospheric CO2 concentrations.
+
+```{r}
+kmidw8 <- lm(deathsqr ~ meth_conc, data = midw)
+summary(kmidw8)
+```
+No significant result implies that we cannot reject the null that there is no linear association between fourth rooted people killed and atmospheric methane concentrations.
+
+```{r}
+kmidw9 <- lm(deathsqr ~ coal_emis + petrol_emis + co2_conc + meth_conc, data = midw)
+summary(kmidw9)
+```
+
+```{r}
+step(kmidw9)
+```
+```{r}
+AIC(kmidw9)
+```
+
+### Damages
+
+Check symmetry of damages:
+```{r}
+# Plot histogram
+hist(midw$adj_damage, main = "Histogram of Inflation Adjusted Damage", xlab = "Damage in Inflation Adjusted Millions")
+```
+The data are right skewed; apply a log transformation:
+```{r}
+# Apply a log transformation
+midw$trans_damage <- log(midw$adj_damage)
+
+# Plot histogram of logged data
+hist(midw$trans_damage, main = "Histogram of Inflation Adjusted Damage (Logged)", xlab = "Logged Damage in Inflation Adjusted Millions")
+```
+The resulting histogram shows sufficiently symmetrical data. Scatterplot to check the predictors: 
+
+```{r}
+plot(midw$trans_damage ~ midw$coal_emis, main = "Damage vs Coal Emissions", ylab = "Millions of Inflation Adjusted Damage (Logged)", xlab = "Coal Emissions (Million Tonnes of CO2)")
+plot(midw$trans_damage ~ midw$petrol_emis, main = "Damage vs Petroleum Emissions", ylab = "Millions of Inflation Adjusted Damage (Logged)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+plot(midw$trans_damage ~ midw$indu_emis, main = "Damage vs Industrial Emissions", ylab = "Millions of Inflation Adjusted Damage (Logged)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+
+plot(midw$trans_damage ~ midw$total_energy_prod, main = "Damage vs Total Energy Produced", ylab = "Millions of Inflation Adjusted Damage (Logged)", xlab = "Total Energy Produced (Billion Btu)")
+plot(midw$trans_damage ~ midw$nonrenew_energy_prod, main = "Damage vs Renewable Energy Produced", ylab = "Millions of Inflation Adjusted Damage (Logged)", xlab = "Total Energy Produced (Billion Btu)")
+plot(midw$trans_damage ~ midw$renew_energy_prod, main = "Damage vs Nonrenewable Energy Produced", ylab = "Millions of Inflation Adjusted Damage (Logged)", xlab = "Total Energy Produced (Billion Btu)")
+
+plot(midw$trans_damage ~ midw$co2_conc, main = "Damage vs Atmospheric CO2 Concentration", ylab = "Millions of Inflation Adjusted Damage (Logged)", xlab = "Atmospheric CO2 Concentration (ppm)")
+plot(midw$trans_damage ~ midw$meth_conc, main = "Damage vs Atmospheric Methane Concentration", ylab = "Millions of Inflation Adjusted Damage (Logged)", xlab = "Atmospheric Methane Concentration (ppb)")
+```
+There are no obvious transformations, although we will keep note of the few outliers in the plot against industrial emissions. Model each predictor individually and interpret results:
+
+```{r}
+dmidw1 <- lm(trans_damage~coal_emis, data = midw)
+summary(dmidw1)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged people injured and coal emissions.
+
+```{r}
+dmidw2 <- lm(trans_damage~petrol_emis, data = midw)
+summary(dmidw2)
+plot(dmidw2, which = 1:2)
+```
+Petroleum emissions is a significant predictor at the 0.05 level, suggesting a positive association with transformed damage. The residuals seem approximately normally distributed with approximately equal variance, but we should also keep note of the outliers.
+
+```{r}
+dmidw3 <- lm(trans_damage~indu_emis, data = midw)
+summary(dmidw3)
+plot(dmidw3, which = 1:2)
+```
+Industrial emissions is a significant predictor at the 0.05 level, suggesting a positive association with transformed damage. The residuals seem approximately normally distributed with approximately equal variance, but we should also keep note that the outliers.
+
+```{r}
+dmidw4 <- lm(trans_damage~total_energy_prod, data = midw)
+summary(dmidw4)
+plot(dmidw4, which = 1:2)
+```
+Total energy produced is a significant predictor at the 0.05 level, suggesting a positive association with transformed damage. The residuals seem approximately normally distributed with approximately equal variance.
+
+```{r}
+dmidw5 <- lm(trans_damage~I(log(renew_energy_prod)), data = midw)
+summary(dmidw5)
+```
+Total energy produced is a significant predictor at the 0.05 level, suggesting a negative association with transformed damage. The residuals seem approximately normally distributed with approximately equal variance.
+
+```{r}
+dmidw6 <- lm(trans_damage~nonrenew_energy_prod, data = midw)
+summary(imidw6)
+```
+No significant result implies that we cannot reject the null that there is no linear association between transformed damages and nonrenewable energy produced.
+
+```{r}
+dmidw7 <- lm(trans_damage ~ co2_conc, data = midw)
+summary(dmidw7)
+plot(dmidw7, which = 1:2)
+```
+Atmospheric CO2 emissions is a significant predictor at the 0.05 level, suggesting a negative association with transformed damage. The residuals seem approximately normally distributed with approximately equal variance.
+
+```{r}
+dmidw8 <- lm(trans_damage ~ meth_conc, data = midw)
+summary(dmidw8)
+```
+Atmospheric methane concentration is a significant predictor at the 0.05 level, suggesting a negative association with transformed damage. The residuals seem approximately normally distributed with approximately equal variance.
+
+```{r}
+dmidw9 <- lm(trans_damage ~  indu_emis + I(log(nonrenew_energy_prod)) + I(log(renew_energy_prod))+co2_conc+ meth_conc, data = midw)
+summary(dmidw9)
+```
+```{r}
+step(dmidw9)
+```
+
+```{r}
+AIC(d)
+```
+
+### Snowstorms in the North
+
+Take 1996 and onward for sufficient data:
+```{r}
+northsub <- as.data.frame(north[17:37, 1:16])
+```
+
+### People Injured
+
+Check symmetry of people injured:
+```{r}
+# Plot histogram
+hist(northsub$injured, main = "Annual People Injured", xlab = "People Injured")
+```
+The data are right skewed; apply a root transformation:
+```{r}
+# Apply a root transformation
+northsub$injuredqr <- (northsub$injured)^0.25
+
+# Plot histogram of forth rooted data
+par(mfrow = c(1,2))
+hist(northsub$injured, main = "Annual People Injured", xlab = "People Injured")
+hist(northsub$injuredqr, main = "Annual People Injured (Logged)", xlab = "People Injured (Logged)")
+```
+The resulting histogram shows sufficiently symmetrical data. Scatterplot to check the predictors: 
+
+```{r}
+plot(northsub$injuredqr ~ northsub$coal_emis, main = "People Injured vs Coal Emissions", ylab = "People Injured (^0.25)", xlab = "Coal Emissions (Million Tonnes of CO2)")
+plot(northsub$injuredqr ~ northsub$petrol_emis, main = "People Injured vs Petroleum Emissions", ylab = "People Injured (^0.25)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+plot(northsub$injuredqr ~ northsub$indu_emis, main = "People Injured vs Industrial Emissions", ylab = "People Injured (^0.25)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+
+plot(northsub$injuredqr ~ northsub$total_energy_prod, main = "People Injured vs Total Energy Produced", ylab = "People Injured (^0.25)", xlab = "Total Energy Produced (Billion Btu)")
+plot(northsub$injuredqr ~ northsub$nonrenew_energy_prod, main = "People Injured vs Renewable Energy Produced", ylab = "People Injured (^0.25)", xlab = "Total Energy Produced (Billion Btu)")
+plot(northsub$injuredqr ~ northsub$renew_energy_prod, main = "People Injured vs Nonrenewable Energy Produced", ylab = "People Injured (^0.25)", xlab = "Total Energy Produced (Billion Btu)")
+
+plot(northsub$injuredqr ~ northsub$co2_conc, main = "People Injured vs Atmospheric CO2 Concentration", ylab = "People Injured (^0.25)", xlab = "Atmospheric CO2 Concentration (ppm)")
+plot(northsub$injuredqr ~ northsub$meth_conc, main = "People Injured vs Atmospheric Methane Concentration", ylab = "People Injured (^0.25)", xlab = "Atmospheric Methane Concentration (ppb)")
+```
+
+
+Model each predictor individually and interpret results:
+
+```{r}
+inorth1 <- lm(injuredqr~coal_emis, data = northsub)
+summary(inorth1)
+plot(inorth1, which = 1:2)
+```
+Coal emissions is a significant predictor at the 0.05 level, suggesting a negative association with fourth rooted people injured. The residuals seem approximately normally distributed with approximately equal variance.
+
+```{r}
+inorth2 <- lm(injuredqr~petrol_emis, data = northsub)
+summary(inorth2)
+plot(inorth2, which = 1:2)
+```
+Petroleum emissions is a significant predictor at the 0.05 level, suggesting a negative association with fourth rooted people injured. The residuals seem approximately normally distributed with approximately equal variance.
+
+```{r}
+inorth3 <- lm(injuredqr~indu_emis, data = northsub)
+summary(inorth3)
+```
+No significant result implies that we cannot reject the null that there is no linear association between fourth rooted people injured and industrial emissions.
+
+```{r}
+inorth4 <- lm(injuredqr~total_energy_prod, data = northsub)
+summary(inorth4)
+```
+No significant result implies that we cannot reject the null that there is no linear association between fourth rooted people injured and total energy produced.
+
+```{r}
+inorth5 <- lm(injuredqr~renew_energy_prod, data = northsub)
+summary(inorth5)
+```
+No significant result implies that we cannot reject the null that there is no linear association between fourth rooted people injured and renewable energy produced.
+
+```{r}
+inorth6 <- lm(injuredqr~nonrenew_energy_prod, data = northsub)
+summary(inorth6)
+```
+No significant result implies that we cannot reject the null that there is no linear association between fourth rooted people injured and nonrenewable energy.
+
+```{r}
+inorth7 <- lm(injuredqr ~ co2_conc, data = northsub)
+summary(inorth7)
+```
+No significant result implies that we cannot reject the null that there is no linear association between fourth rooted people injured and atmospheric CO2 concentrations.
+
+```{r}
+inorth8 <- lm(injuredqr ~ meth_conc, data = northsub)
+summary(inorth8)
+```
+No significant result implies that we cannot reject the null that there is no linear association between fourth rooted people injured and atmospheric methane concentrations.
+
+```{r}
+inorth8 <- lm(injuredqr ~ coal_emis + petrol_emis + renew_energy_prod + co2_conc + meth_conc, data = northsub)
+summary(inorth8)
+```
+```{r}
+step(inorth8)
+```
+
+```{r}
+inorth10 <- lm(formula = injuredqr ~ renew_energy_prod + co2_conc + meth_conc, 
+    data = northsub)
+summary(inorth10)
+```
+
+
+### People Killed
+
+Check symmetry of people injured:
+```{r}
+# Plot histogram
+hist(northsub$deaths, main = "Histogram of Annual Deaths", xlab = "Deaths")
+```
+The data are right skewed; apply a root transformation:
+```{r}
+# Apply the log transformation
+northsub$logged_deaths <- log(northsub$deaths)
+
+# Plot histogram of logged data
+hist(northsub$logged_deaths, main = "Histogram of Annual Deaths (Logged)", xlab = "Logged Deaths")
+```
+The resulting histogram is not ideal but it is the best of the attempted transformations. Scatterplot to check the predictors: 
+
+```{r}
+plot(northsub$logged_deaths ~ northsub$coal_emis, main = "Deaths vs Coal Emissions", ylab = "Deaths (logged)", xlab = "Coal Emissions (Million Tonnes of CO2)")
+plot(northsub$logged_deaths ~ northsub$petrol_emis, main = "Deaths vs Petroleum Emissions", ylab = "Deaths (logged)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+plot(northsub$logged_deaths ~ northsub$indu_emis, main = "Deaths vs Industrial Emissions", ylab = "Deaths (logged)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+
+plot(northsub$logged_deaths ~ northsub$total_energy_prod, main = "Deaths vs Total Energy Produced", ylab = "Deaths (logged)", xlab = "Total Energy Produced (Billion Btu)")
+plot(northsub$logged_deaths ~ northsub$nonrenew_energy_prod, main = "Deaths vs Renewable Energy Produced", ylab = "Deaths (logged)", xlab = "Total Energy Produced (Billion Btu)")
+plot(northsub$logged_deaths ~ northsub$renew_energy_prod, main = "Deaths vs Nonrenewable Energy Produced", ylab = "Deaths (logged)", xlab = "Total Energy Produced (Billion Btu)")
+
+plot(northsub$logged_deaths ~ northsub$co2_conc, main = "Deaths vs Atmospheric CO2 Concentration", ylab = "Deaths (logged)", xlab = "Atmospheric CO2 Concentration (ppm)")
+plot(northsub$logged_deaths ~ northsub$meth_conc, main = "Deaths vs Atmospheric Methane Concentration", ylab = "Deaths (logged)", xlab = "Atmospheric Methane Concentration (ppb)")
+```
+There are no obvious transformations. Model each predictor individually and interpret results:
+
+```{r}
+knorth1 <- lm(logged_deaths~coal_emis, data = northsub)
+summary(knorth1)
+plot(knorth1, which = 1:2)
+```
+Coal emissions is a significant predictor at the 0.05 level, suggesting a negative association with fourth rooted people injured. The residuals seem approximately normally distributed but the variance of residuals drops off.
+
+```{r}
+knorth2 <- lm(logged_deaths~petrol_emis, data = northsub)
+summary(knorth2)
+plot(knorth2, which = 1:2)
+```
+Petroleum emissions is a significant predictor at the 0.05 level, suggesting a negative association with logged deaths. The residuals seem approximately normally distributed with approximately equal variance.
+
+```{r}
+knorth3 <- lm(logged_deaths~indu_emis, data = northsub)
+summary(knorth3)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged deaths and industrial emissions.
+
+```{r}
+knorth4 <- lm(logged_deaths~total_energy_prod, data = northsub)
+summary(knorth4)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged deaths and total energy produced.
+
+```{r}
+knorth5 <- lm(logged_deaths~renew_energy_prod, data = northsub)
+summary(knorth5)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged deaths and renewable energy produced.
+
+```{r}
+knorth6 <- lm(logged_deaths~nonrenew_energy_prod, data = northsub)
+summary(knorth6)
+plot(knorth6, which = 1:2)
+```
+Nonrenewable energy produced is a significant predictor, suggesting a negative association with logged deaths. Although the residuals have approximately equal variance, their distribution is fat-tailed.
+
+```{r}
+knorth7 <- lm(logged_deaths ~ co2_conc, data = northsub)
+summary(knorth7)
+plot(knorth7, which = 1:2)
+```
+CO2 concentration is a significant predictor at the 0.05 level, suggesting a positive association with logged deaths. Although the residuals have approximately equal variance, their distribution is fat-tailed.
+
+```{r}
+knorth8 <- lm(logged_deaths ~ meth_conc, data = northsub)
+summary(knorth8)
+plot(knorth8, which = 1:2)
+```
+Methane concentration is a significant predictor at the 0.05 level, suggesting a positive association with logged deaths. Although the residuals have approximately equal variance, their distribution is slightly fat-tailed.
+
+```{r}
+knorth9 <- lm(logged_deaths ~ coal_emis + indu_emis + co2_conc + meth_conc, data = northsub)
+summary(knorth9)
+```
+```{r}
+step(knorth9, direction = "both")
+```
+
+```{r}
+knorth10 <- lm(logged_deaths ~ indu_emis + co2_conc, data = northsub)
+summary(knorth10)
+AIC(knorth9)
+AIC(knorth10)
+summary(knorth9)$adj.r.squared
+```
+
+
+### Damages
+
+Check symmetry of property damages:
+```{r}
+# Plot histogram
+hist(northsub$adj_damage, main = "Histogram of Annual Inflation Adjusted Damage", xlab = "Damage in Millions, Adjusted for inflation")
+```
+The data are right skewed; apply a root transformation:
+```{r}
+# Apply the fourth root transformation
+northsub$damageqr <- (northsub$adj_damage)^(0.25)
+
+# Plot histogram of logged data
+hist(northsub$damageqr, main = "Histogram of Damage (^0.25)", xlab = "Millions of Inflation Adjusted Damage (^0.25)")
+```
+The resulting histogram is sufficient. Scatterplot to check the predictors: 
+
+```{r}
+plot(northsub$damageqr ~ northsub$coal_emis, main = "Damage vs Coal Emissions", ylab = "Inflation Adjusted Millions of Damage (^0.25)", xlab = "Coal Emissions (Million Tonnes of CO2)")
+plot(northsub$damageqr ~ northsub$petrol_emis, main = "Damage vs Petroleum Emissions", ylab = "Inflation Adjusted Millions of Damage (^0.25)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+plot(northsub$damageqr ~ northsub$indu_emis, main = "Damage vs Industrial Emissions", ylab = "Inflation Adjusted Millions of Damage (^0.25)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+
+plot(northsub$damageqr ~ northsub$total_energy_prod, main = "Damage vs Total Energy Produced", ylab = "Inflation Adjusted Millions of Damage (^0.25)", xlab = "Total Energy Produced (Billion Btu)")
+plot(northsub$damageqr ~ northsub$nonrenew_energy_prod, main = "Damage vs Renewable Energy Produced", ylab = "Inflation Adjusted Millions of Damage (^0.25)", xlab = "Total Energy Produced (Billion Btu)")
+plot(northsub$damageqr ~ northsub$renew_energy_prod, main = "Damage vs Nonrenewable Energy Produced", ylab = "Inflation Adjusted Millions of Damage (^0.25)", xlab = "Total Energy Produced (Billion Btu)")
+
+plot(northsub$damageqr ~ northsub$co2_conc, main = "Damage vs Atmospheric CO2 Concentration", ylab = "Inflation Adjusted Millions of Damage (^0.25)", xlab = "Atmospheric CO2 Concentration (ppm)")
+plot(northsub$damageqr ~ northsub$meth_conc, main = "Damage vs Atmospheric Methane Concentration", ylab = "Inflation Adjusted Millions of Damage (^0.25)", xlab = "Atmospheric Methane Concentration (ppb)")
+```
+There are no obvious transformations. Model each predictor individually and interpret results:
+
+```{r}
+hist(northsub$coal_emis)
+```
+
+
+```{r}
+dnorth1 <- lm(damageqr~coal_emis, data = northsub)
+summary(dnorth1)
+plot(dnorth1, which = 1:2)
+```
+Coal emissions is a significant predictor at the 0.05 level, suggesting a positive association with fourth rooted damages. The residuals are right skewed with hornshaped variance.
+
+```{r}
+dnorth2 <- lm(damageqr~petrol_emis, data = northsub)
+summary(dnorth2)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged deaths and petroleum emissions.
+
+```{r}
+dnorth3 <- lm(damageqr~indu_emis, data = northsub)
+summary(dnorth3)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged deaths and industrial emmisions.
+
+```{r}
+dnorth4 <- lm(damageqr~total_energy_prod, data = northsub)
+summary(dnorth4)
+```
+Total energy produced is a significant predictor at the 0.01 level, suggesting a positive association with adjusted fourth rooted damages.
+
+```{r}
+dnorth5 <- lm(damageqr~renew_energy_prod, data = northsub)
+summary(dnorth5)
+```
+No significant result implies that we cannot reject the null that there is no linear association between logged deaths and renewable energy produced.
+
+```{r}
+dnorth6 <- lm(damageqr~nonrenew_energy_prod, data = northsub)
+summary(dnorth6)
+plot(dnorth6, which = 1:2)
+```
+Nonrenewable energy produced is a significant predictor, suggesting a negative positive association with rooted damages. The residuals have approximately equal variance and are approximately normally distributed.
+
+```{r}
+dnorth7 <- lm(damageqr ~ co2_conc, data = northsub)
+summary(dnorth7)
+plot(dnorth7, which = 1:2)
+```
+CO2 concentration is a significant predictor at the 0.05 level, suggesting a negative association with logged deaths. The residuals have approximately equal variance and are approximately normally distributed.
+
+```{r}
+dnorth8 <- lm(damageqr ~ meth_conc, data = northsub)
+summary(dnorth8)
+plot(dnorth8, which = 1:2)
+```
+Methane concentration is a significant predictor at the 0.05 level, suggesting a negative association with rooted damages. The residuals have approximately equal variance and are approximately normally distributed, slightly right skewed.
+
+```{r}
+dnorth9 <- lm(damageqr ~ coal_emis + petrol_emis + indu_emis + nonrenew_energy_prod + co2_conc + meth_conc, data = northsub)
+summary(dnorth9)
+```
+
+```{r}
+step(dnorth9)
+```
+
+```{r}
+AIC(dnorth1)
+AIC(dnorth9)
+summary(dnorth1)$adj.r.squared
+summary(dnorth9)$adj.r.squared
+```
+
+### Rainstorms in the North
+
+### People Injured
+
+Check symmetry of people injured:
+```{r}
+# Plot histogram
+hist(south$injured, main = "Histogram of Annual People Injured", xlab = "People Injured")
+```
+The data are right skewed; apply a log transformation:
+```{r}
+# Apply a log transformation
+south$logged_injured <- log(south$injured)
+
+# Plot histogram of forth rooted data
+hist(south$logged_injured, main = "Histogram of Annual People Injured (Logged)", xlab = "Logged People Injured")
+```
+The resulting histogram shows sufficiently symmetrical data. Scatterplot to check the predictors: 
+
+```{r}
+plot(south$logged_injured ~ south$coal_emis, main = "People Injured vs Coal Emissions", ylab = "People Injured (logged)", xlab = "Coal Emissions (Million Tonnes of CO2)")
+plot(south$logged_injured ~ south$petrol_emis, main = "People Injured vs Petroleum Emissions", ylab = "People Injured (logged)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+plot(northsub$logged_injured ~ south$indu_emis, main = "People Injured vs Industrial Emissions", ylab = "People Injured (logged)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+
+plot(south$logged_injured ~ south$total_energy_prod, main = "People Injured vs Total Energy Produced", ylab = "People Injured (logged)", xlab = "Total Energy Produced (Billion Btu)")
+plot(south$logged_injured ~ south$nonrenew_energy_prod, main = "People Injured vs Renewable Energy Produced", ylab = "People Injured (logged)", xlab = "Total Energy Produced (Billion Btu)")
+plot(south$logged_injured ~ south$renew_energy_prod, main = "People Injured vs Nonrenewable Energy Produced", ylab = "People Injured (logged)", xlab = "Total Energy Produced (Billion Btu)")
+
+plot(south$logged_injured ~ south$co2_conc, main = "People Injured vs Atmospheric CO2 Concentration", ylab = "People Injured (logged)", xlab = "Atmospheric CO2 Concentration (ppm)")
+plot(south$logged_injured ~ south$meth_conc, main = "People Injured vs Atmospheric Methane Concentration", ylab = "People Injured (logged)", xlab = "Atmospheric Methane Concentration (ppb)")
+```
+Coal emissions seems skewd left:
+
+```{r}
+hist(northsub$coal_emis)
+hist((northsub$coal_emis)^2)
+plot(northsub$logged_injured ~ I(northsub$coal_emis)^2)
+```
+There is an improvement so we'll keep the log.
+
+Model each predictor individually and interpret results:
+
+```{r}
+isouth1 <- lm(logged_injured~I(log(coal_emis)), data = south)
+summary(isouth1)
+```
+The predictor is not significant, so we cannot reject the null hypothesis that there is no linear association between logged people injured and coal emmisions.
+
+```{r}
+isouth2 <- lm(logged_injured~petrol_emis, data = south)
+summary(isouth2)
+```
+The predictor is not significant, so we cannot reject the null hypothesis that there is no linear association between logged people injured and petroleum emmisions.
+
+```{r}
+isouth3 <- lm(logged_injured~indu_emis, data = south)
+summary(isouth3)
+```
+The predictor is not significant, so we cannot reject the null hypothesis that there is no linear association between logged people injured and industrial emmisions.
+
+```{r}
+isouth4 <- lm(logged_injured~total_energy_prod, data = northsub)
+summary(isouth4)
+```
+The predictor is not significant, so we cannot reject the null that there is no linear association between logged people injured and total energy produced.
+
+```{r}
+isouth5 <- lm(logged_injured~renew_energy_prod, data = south)
+summary(isouth5)
+```
+The predictor is not significant, so we cannot reject the null hypothesis that there is no linear association between logged people injured and renewable energy produced.
+
+```{r}
+isouth6 <- lm(logged_injured~nonrenew_energy_prod, data = south)
+summary(isouth6)
+```
+The predictor is not significant, so we cannot reject the null hypothesis that there is no linear association between logged people injured and renewable energy produced.
+
+```{r}
+isouth7 <- lm(logged_injured ~ co2_conc, data = south)
+summary(isouth7)
+```
+The predictor is not significant, so that we cannot reject the null that there is no linear association between logged people injured and atmospheric CO2 concentrations.
+
+```{r}
+isouth8 <- lm(logged_injured ~ meth_conc, data = south)
+summary(isouth8)
+```
+The predictor is not significant, so we cannot reject the null that there is no linear association between logged people injured and atmospheric methane concentrations.
+
+```{r}
+isouth9 <- lm(logged_injured ~ I(log(coal_emis)) + indu_emis + petrol_emis, data = south)
+summary(isouth9)
+```
+
+```{r}
+step(isouth9)
+```
+
+
+### People Killed
+
+Check symmetry of deaths:
+```{r}
+# Plot histogram
+hist(south$deaths, main = "Histogram of Annual Deaths", xlab = "People Injured")
+```
+The data are right skewed; apply a log transformation:
+```{r}
+# Apply a log transformation
+south$logged_deaths <- log(south$deaths)
+
+# Plot histogram of forth rooted data
+hist(south$logged_deaths, main = "Histogram of Annual Deaths (Logged)", xlab = "Logged Deaths")
+```
+The resulting histogram shows symmetrical data, although there is an extreme outlier. Scatterplot to check the predictors: 
+
+```{r}
+plot(south$logged_deaths ~ south$coal_emis, main = "Deaths vs Coal Emissions", ylab = "Deaths (logged)", xlab = "Coal Emissions (Million Tonnes of CO2)")
+plot(south$logged_deaths ~ south$petrol_emis, main = "Deaths vs Petroleum Emissions", ylab = "Deaths (logged)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+plot(northsub$logged_deaths ~ south$indu_emis, main = "Deaths vs Industrial Emissions", ylab = "Deaths (logged)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+
+plot(south$logged_deaths ~ south$total_energy_prod, main = "Deaths vs Total Energy Produced", ylab = "Deaths(logged)", xlab = "Total Energy Produced (Billion Btu)")
+plot(south$logged_deaths ~ south$nonrenew_energy_prod, main = "Deaths vs Renewable Energy Produced", ylab = "Deaths (logged)", xlab = "Total Energy Produced (Billion Btu)")
+plot(south$logged_deaths ~ south$renew_energy_prod, main = "Deaths vs Nonrenewable Energy Produced", ylab = "Deaths (logged)", xlab = "Total Energy Produced (Billion Btu)")
+
+plot(south$logged_deaths ~ south$co2_conc, main = "Deaths vs Atmospheric CO2 Concentration", ylab = "Deaths (logged)", xlab = "Atmospheric CO2 Concentration (ppm)")
+plot(south$logged_deaths ~ south$meth_conc, main = "Deaths vs Atmospheric Methane Concentration", ylab = "Deaths (logged)", xlab = "Atmospheric Methane Concentration (ppb)")
+```
+
+
+Model each predictor individually and interpret results:
+
+```{r}
+ksouth1 <- lm(logged_deaths~coal_emis, data = south)
+summary(ksouth1)
+#plot(isouth1, which = 1:2)
+```
+The predictor is not significant, so we cannot reject the null hypothesis that there is no linear association between logged deaths and coal emmisions.
+
+```{r}
+ksouth2 <- lm(logged_deaths~petrol_emis, data = south)
+summary(ksouth2)
+```
+The predictor is not significant, so we cannot reject the null hypothesis that there is no linear association between logged deaths and petroleum emmisions.
+
+```{r}
+ksouth3 <- lm(logged_deaths~indu_emis, data = south)
+summary(ksouth3)
+```
+The predictor is not significant, so we cannot reject the null hypothesis that there is no linear association between logged deaths and industrial emmisions.
+
+```{r}
+ksouth4 <- lm(logged_deaths~total_energy_prod, data = northsub)
+summary(ksouth4)
+plot(ksouth4, which = 1:2)
+```
+Total energy is a significant predictor at the 0.01 level, suggesting a linear association between logged deaths and total energy produced.
+
+```{r}
+ksouth5 <- lm(logged_deaths~renew_energy_prod, data = south)
+summary(ksouth5)
+```
+The predictor is not significant, so we cannot reject the null hypothesis that there is no linear association between logged deaths and renewable energy produced.
+
+```{r}
+ksouth6 <- lm(logged_deaths~nonrenew_energy_prod, data = south)
+summary(ksouth6)
+```
+The predictor is not significant, so we cannot reject the null hypothesis that there is no linear association between logged deaths and renewable energy produced.
+
+```{r}
+ksouth7 <- lm(logged_deaths ~ co2_conc, data = south)
+summary(ksouth7)
+```
+The predictor is not significant, so that we cannot reject the null that there is no linear association between logged deaths and atmospheric CO2 concentrations.
+
+```{r}
+ksouth8 <- lm(logged_deaths ~ meth_conc, data = south)
+summary(ksouth8)
+```
+The predictor is not significant, so we cannot reject the null that there is no linear association between logged deaths and atmospheric methane concentrations.
+
+```{r}
+ksouth9 <- lm(logged_deaths ~ petrol_emis + co2_conc, data = south)
+summary(ksouth9)
+```
+
+```{r}
+step(ksouth9)
+```
+
+### Damage
+
+Check symmetry of deaths:
+```{r}
+# Plot histogram
+hist(south$adj_damage, main = "Histogram of Annual Damage", xlab = "Anual Damage Adjust for Inflation in Millions")
+```
+The data are right skewed; apply a log transformation:
+```{r}
+# Apply a log transformation
+south$logged_damage <- log(south$damage)
+
+# Plot histogram of logged
+hist(log(south$adj_damage), main = "Histogram of Annual Damage", xlab = "Anual Damage Adjust for Inflation in Millions")
+```
+The resulting histogram shows symmetrical data, although there is an extreme outlier. Scatterplot to check the predictors: 
+
+```{r}
+plot(south$logged_damage ~ south$coal_emis, main = "Damage vs Coal Emissions", ylab = "Damage (Adj. Logged Millions)", xlab = "Coal Emissions (Million Tonnes of CO2)")
+plot(south$logged_damage ~ south$petrol_emis, main = "Damage vs Petroleum Emissions", ylab = "Damage (Adj. Logged Millions)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+plot(south$logged_damage ~ south$indu_emis, main = "Damage vs Industrial Emissions", ylab = "Damage (Adj. Logged Millions)", xlab = "Petroleum Emissions (Million Tonnes of CO2)")
+
+plot(south$logged_damage ~ south$total_energy_prod, main = "Damage vs Total Energy Produced", ylab = "Damage (Adj. Logged Millions)", xlab = "Total Energy Produced (Billion Btu)")
+plot(south$logged_damage ~ south$nonrenew_energy_prod, main = "Damage vs Renewable Energy Produced", ylab = "Damage (Adj. Logged Millions)", xlab = "Total Energy Produced (Billion Btu)")
+plot(south$logged_damage ~ south$renew_energy_prod, main = "Damage vs Nonrenewable Energy Produced", ylab = "Damage (Adj. Logged Millions)", xlab = "Total Energy Produced (Billion Btu)")
+
+plot(south$logged_damage ~ south$co2_conc, main = "Damage vs Atmospheric CO2 Concentration", ylab = "Damage (Adj. Logged Millions)", xlab = "Atmospheric CO2 Concentration (ppm)")
+plot(south$logged_damage ~ south$meth_conc, main = "Damage vs Atmospheric Methane Concentration", ylab = "Damage (Adj. Logged Millions)", xlab = "Atmospheric Methane Concentration (ppb)")
+```
+
+Model each predictor individually and interpret results:
+
+```{r}
+dsouth1 <- lm(logged_damage~coal_emis, data = south)
+summary(dsouth1)
+#plot(isouth1, which = 1:2)
+```
+The predictor is not significant, so we cannot reject the null hypothesis that there is no linear association between logged deaths and coal emmisions.
+
+```{r}
+dsouth2 <- lm(logged_damage~petrol_emis, data = south)
+summary(dsouth2)
+```
+The predictor is not significant, so we cannot reject the null hypothesis that there is no linear association between logged deaths and petroleum emmisions.
+
+```{r}
+dsouth3 <- lm(logged_damage~indu_emis, data = south)
+summary(dsouth3)
+```
+The predictor is not significant, so we cannot reject the null hypothesis that there is no linear association between logged deaths and industrial emmisions.
+
+```{r}
+dsouth4 <- lm(logged_damage~total_energy_prod, data = northsub)
+summary(dsouth4)
+plot(dsouth1, which = 1:2)
+```
+Total energy is a significant predictor at the 0.01 level, suggesting a linear association between logged damage and total energy produced. 
+
+```{r}
+dsouth5 <- lm(logged_damage~renew_energy_prod, data = south)
+summary(dsouth5)
+```
+The predictor is not significant, so we cannot reject the null hypothesis that there is no linear association between logged deaths and renewable energy produced.
+
+```{r}
+dsouth6 <- lm(logged_damage~nonrenew_energy_prod, data = south)
+summary(dsouth6)
+```
+The predictor is not significant, so we cannot reject the null hypothesis that there is no linear association between logged deaths and renewable energy produced.
+
+```{r}
+dsouth7 <- lm(logged_damage ~ co2_conc, data = south)
+summary(dsouth7)
+```
+The predictor is not significant, so that we cannot reject the null that there is no linear association between logged deaths and atmospheric CO2 concentrations.
+
+```{r}
+dsouth8 <- lm(logged_damage ~ meth_conc, data = south)
+summary(dsouth8)
+```
+The predictor is not significant, so we cannot reject the null that there is no linear association between logged deaths and atmospheric methane concentrations.
+
+```{r}
+dsouth9 <- lm(logged_damage ~ coal_emis + petrol_emis + indu_emis, data = south)
+summary(dsouth9)
+```
+```{r}
+step(dsouth9)
 ```
 
